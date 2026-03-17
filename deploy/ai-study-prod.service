@@ -1,0 +1,48 @@
+[Unit]
+Description=AI 伴学小程序 API - Production Environment
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ecs-user
+Group=ecs-user
+WorkingDirectory=/home/ecs-user/my_open_calender/backend
+
+# 环境变量
+Environment="PYTHONUNBUFFERED=1"
+Environment="PYTHONPATH=/home/ecs-user/my_open_calender/backend"
+Environment="APP_ENV=production"
+Environment="DB_PATH=/home/ecs-user/my_open_calender/data/prod.db"
+Environment="HOST=127.0.0.1"
+Environment="PORT=8001"
+Environment="DEBUG=false"
+Environment="LOG_LEVEL=error"
+
+# 从 secrets 文件读取敏感信息
+EnvironmentFile=-/etc/ai-study/prod.secrets
+
+# 启动命令（使用绝对路径）
+ExecStart=/home/ecs-user/.nvm/versions/node/v24.14.0/bin/python3 main.py
+
+# 重启策略
+Restart=always
+RestartSec=5
+StartLimitBurst=3
+StartLimitInterval=60s
+
+# 资源限制
+LimitNOFILE=65535
+LimitNPROC=4096
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ai-study-prod
+
+[Install]
+WantedBy=multi-user.target
