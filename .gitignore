@@ -8,7 +8,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 .env
+.env.local
 .venv/
+
+# 敏感信息
+*.pem
+*.key
+secrets/
+credentials.json
 
 # IDE
 .vscode/

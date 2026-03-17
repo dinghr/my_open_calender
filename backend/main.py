@@ -2,7 +2,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="AI 助学小程序 API", version="0.1.0")
+from routes import router
+
+app = FastAPI(title="AI 助学小程序 API", version="0.2.0")
 
 # CORS - 允许前端访问
 app.add_middleware(
@@ -13,17 +15,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 注册路由
+app.include_router(router)
+
+
 @app.get("/")
 def root():
-    return {"message": "AI 助学小程序 API 运行中 🦞", "version": "0.1.0"}
+    return {"message": "AI 助学小程序 API 运行中 🦞", "version": "0.2.0"}
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# TODO: 添加计划表 API
-# TODO: 添加错题本 API
-# TODO: 添加出题 API
 
 if __name__ == "__main__":
     import uvicorn

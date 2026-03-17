@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 伴学小程序 - 原型预览</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
+
+    /* ===== 设计令牌 ===== */
+    :root {
+      /* 主色调 - 清新薄荷绿/青色 */
+      --primary: #14B8A6;
+      --primary-light: #2DD4BF;
+      --primary-lighter: #5EEAD4;
+      --primary-dark: #0D9488;
+      --primary-bg: rgba(20, 184, 166, 0.1);
+
+      /* 强调色 - 活力橙色 */
+      --accent: #F97316;
+      --accent-light: #FB923C;
+      --accent-bg: rgba(249, 115, 22, 0.1);
+
+      /* 背景色 */
+      --bg-primary: #F8FAFC;
+      --bg-secondary: #F1F5F9;
+      --bg-card: #FFFFFF;
+
+      /* 文字色 */
+      --text-primary: #1E293B;
+      --text-secondary: #64748B;
+      --text-tertiary: #94A3B8;
+
+      /* 边框和阴影 */
+      --border-color: #E2E8F0;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+      /* 圆角 */
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 20px;
+      --radius-xl: 24px;
+
+      /* 成功/完成色 */
+      --success: #10B981;
+      --success-light: #34D399;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: linear-gradient(180deg, #F0FDF9 0%, #F8FAFC 50%, #F1F5F9 100%);
+      min-height: 100vh;
+      padding: 60px 20px;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* 背景装饰 */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(45, 212, 191, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(249, 115, 22, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(45, 212, 191, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 12px;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .phone-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 48px;
+      justify-items: center;
+    }
+
+    .phone-wrapper { position: relative; }
+
+    .phone-frame {
+      width: 340px;
+      height: 720px;
+      background: var(--bg-card);
+      border-radius: 48px;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 30px 60px -15px rgba(0, 0, 0, 0.15),
+        0 0 0 8px #E2E8F0,
+        0 0 0 12px #CBD5E1;
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 120px; height: 28px;
+      background: linear-gradient(180deg, #CBD5E1 0%, #94A3B8 100%);
+      border-radius: 0 0 20px 20px;
+      z-index: 100;
+    }
+
+    .screen {
+      height: 100%;
+      overflow-y: auto;
+      background: linear-gradient(180deg, #FEFFFE 0%, #F8FAFC 100%);
+      padding-bottom: 88px;
+    }
+    .screen::-webkit-scrollbar { width: 0; }
+
+    /* ===== 首页 - 全新设计 ===== */
+    .user-header {
+      padding: 52px 20px 16px;
+      background: var(--bg-card);
+      position: relative;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+    }
+
+    .user-text h3 { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+    .user-text p { font-size: 13px; color: var(--text-secondary); margin-top: 2px; font-weight: 500; }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--bg-secondary);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 18px;
+    }
+
+    .icon-btn:hover {
+      background: var(--primary-bg);
+      transform: scale(1.05);
+    }
+
+    /* ===== 学习进度大卡片 ===== */
+    .progress-hero {
+      margin: 16px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--primary-lighter) 100%);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      color: white;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(20, 184, 166, 0.35);
+    }
+
+    .progress-hero::before {
+      content: '';
+      position: absolute;
+      top: -50%; right: -20%;
+      width: 200px; height: 200px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .progress-hero::after {
+      content: '';
+      position: absolute;
+      bottom: -30%; left: -10%;
+      width: 150px; height: 150px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+    }
+
+    .progress-hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .progress-hero-title {
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .progress-hero-big {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .big-number {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .big-unit {
+      font-size: 16px;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .progress-bar-container {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      height: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #FFFFFF 0%, rgba(255, 255, 255, 0.9) 100%);
+      border-radius: 20px;
+      width: 75%;
+      position: relative;
+      animation: progress-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes progress-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+
+    .progress-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 8px;
+      width: 40%; height: 3px;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 3px;
+    }
+
+    .progress-hero-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .stat-icon {
+      width: 24px; height: 24px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    /* ===== 每日任务设置卡片 ===== */
+    .daily-task-card {
+      margin: 0 16px 16px;
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title-icon {
+      width: 28px; height: 28px;
+      background: var(--primary-bg);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .task-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .task-setting-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .task-setting-row:first-child {
+      padding-top: 0;
+    }
+
+    .task-setting-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .task-icon {
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .task-icon.new {
+      background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+    }
+
+    .task-icon.review {
+      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    }
+
+    .task-setting-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .task-setting-desc {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .number-stepper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stepper-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--border-color);
+      background: var(--bg-card);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stepper-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-bg);
+    }
+
+    .stepper-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      min-width: 28px;
+      text-align: center;
+    }
+
+    /* ===== 模式选择 - 分段式控制器 ===== */
+    .mode-section {
+      margin: 0 16px 16px;
+    }
+
+    .segment-control {
+      display: flex;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .segment-item {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 14px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: transparent;
+      border: none;
+    }
+
+    .segment-item.active {
+      background: var(--bg-card);
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .segment-item:hover:not(.active) {
+      color: var(--text-primary);
+    }
+
+    /* ===== 快捷功能入口 ===== */
+    .quick-actions {
+      margin: 0 16px 16px;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .quick-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 8px;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .quick-item:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .quick-icon {
+      width: 44px; height: 44px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .quick-icon.purple { background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%); }
+    .quick-icon.orange { background: linear-gradient(135deg, #FFEDD5 0%, #FED7AA 100%); }
+    .quick-icon.green { background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%); }
+    .quick-icon.blue { background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); }
+
+    .quick-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* ===== 今日闪光时刻 ===== */
+    .flash-card {
+      margin: 0 16px 16px;
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .flash-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .flash-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      transition: all 0.2s;
+    }
+
+    .flash-item:hover {
+      background: #E2E8F0;
+    }
+
+    .flash-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .flash-icon.math {
+      background: linear-gradient(135deg, #FED7AA 0%, #FDBA74 100%);
+    }
+
+    .flash-icon.read {
+      background: linear-gradient(135deg, #BBF7D0 0%, #86EFAC 100%);
+    }
+
+    .flash-content { flex: 1; }
+    .flash-text { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .flash-time { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+    .flash-xp {
+      font-size: 14px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 12px;
+    }
+
+    /* ===== 底部等距风格插图 ===== */
+    .illustration-section {
+      margin: 16px;
+      padding: 24px;
+      background: linear-gradient(135deg, #F0FDF9 0%, #CCFBF1 100%);
+      border-radius: var(--radius-xl);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .isometric-scene {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 16px;
+      height: 100px;
+      margin-bottom: 12px;
+    }
+
+    .iso-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: float-iso 3s ease-in-out infinite;
+    }
+
+    .iso-item:nth-child(2) { animation-delay: 0.5s; }
+    .iso-item:nth-child(3) { animation-delay: 1s; }
+
+    @keyframes float-iso {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .iso-book {
+      width: 40px; height: 50px;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      border-radius: 4px 4px 2px 2px;
+      position: relative;
+      transform: perspective(100px) rotateY(-15deg);
+      box-shadow: 4px 4px 0 rgba(20, 184, 166, 0.3);
+    }
+
+    .iso-book::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 6px;
+      background: var(--primary-dark);
+      border-radius: 2px 0 0 2px;
+    }
+
+    .iso-pencil {
+      width: 12px; height: 60px;
+      background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 50%, #FBBF24 50%, #FCD34D 100%);
+      border-radius: 2px 2px 6px 6px;
+      transform: rotate(-15deg);
+      box-shadow: 3px 3px 0 rgba(245, 158, 11, 0.3);
+    }
+
+    .iso-pencil::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 10px solid #F59E0B;
+    }
+
+    .iso-trophy {
+      width: 44px; height: 50px;
+      position: relative;
+    }
+
+    .trophy-cup {
+      width: 44px; height: 36px;
+      background: linear-gradient(180deg, #FCD34D 0%, #FBBF24 100%);
+      border-radius: 4px 4px 20px 20px;
+      box-shadow: 3px 3px 0 rgba(251, 191, 36, 0.3);
+    }
+
+    .trophy-base {
+      width: 24px; height: 10px;
+      background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%);
+      border-radius: 2px;
+      margin: 0 auto;
+      margin-top: 4px;
+    }
+
+    .trophy-handle {
+      position: absolute;
+      top: 8px;
+      width: 10px; height: 20px;
+      border: 4px solid #FBBF24;
+      border-left: none;
+      border-radius: 0 12px 12px 0;
+    }
+
+    .trophy-handle.left {
+      left: -10px;
+      transform: scaleX(-1);
+    }
+
+    .trophy-handle.right {
+      right: -10px;
+    }
+
+    .illustration-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+
+    /* ===== 开始学习按钮 ===== */
+    .start-btn-container {
+      margin: 0 16px 16px;
+    }
+
+    .start-btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      color: white;
+      border: none;
+      border-radius: var(--radius-xl);
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+      transition: all 0.25s;
+      font-family: inherit;
+    }
+
+    .start-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(249, 115, 22, 0.4);
+    }
+
+    .start-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* ===== 计划页 ===== */
+    .plan-header {
+      padding: 52px 20px 24px;
+      background: var(--bg-card);
+      text-align: center;
+      position: relative;
+    }
+
+    .plan-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 20px; right: 20px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+    }
+
+    .plan-date { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+    .plan-weekday { font-size: 15px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; }
+
+    .plan-nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .plan-nav-btn {
+      width: 40px; height: 40px;
+      border: none;
+      background: var(--bg-secondary);
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .plan-nav-btn:hover {
+      background: var(--primary-bg);
+      color: var(--primary);
+      transform: scale(1.05);
+    }
+
+    .plan-today {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .plan-today:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(20, 184, 166, 0.4);
+    }
+
+    .time-section {
+      background: var(--bg-card);
+      margin: 0 16px 16px;
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      margin-bottom: 10px;
+      transition: all 0.25s;
+      border: 2px solid transparent;
+    }
+
+    .task-item:last-child { margin-bottom: 0; }
+    .task-item:hover { border-color: var(--primary-light); }
+
+    .task-item.completed {
+      background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);
+      border-color: var(--success-light);
+    }
+
+    .task-checkbox {
+      width: 26px; height: 26px;
+      border: 2.5px solid var(--border-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      flex-shrink: 0;
+      font-size: 14px;
+      background: var(--bg-card);
+    }
+
+    .task-item.completed .task-checkbox {
+      background: linear-gradient(135deg, var(--success) 0%, var(--success-light) 100%);
+      border-color: var(--success);
+      color: white;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .task-info { flex: 1; min-width: 0; }
+    .task-time { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .task-desc { font-size: 13px; color: var(--text-tertiary); margin-top: 2px; font-weight: 500; }
+    .task-badge { font-size: 20px; flex-shrink: 0; }
+
+    /* ===== Tab Bar ===== */
+    .tab-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 88px;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      padding-top: 14px;
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-tertiary);
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      padding: 4px 12px;
+      border-radius: 12px;
+    }
+
+    .tab-item:hover {
+      background: var(--bg-secondary);
+    }
+
+    .tab-item.active {
+      color: var(--primary);
+      background: var(--primary-bg);
+    }
+
+    .tab-icon {
+      font-size: 22px;
+      margin-bottom: 2px;
+      transition: transform 0.2s;
+    }
+
+    .tab-item:hover .tab-icon {
+      transform: scale(1.1);
+    }
+
+    .tab-item.active .tab-icon {
+      animation: tab-bounce 0.5s ease;
+    }
+
+    @keyframes tab-bounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    /* ===== Labels ===== */
+    .page-label {
+      position: absolute;
+      top: -36px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      padding: 10px 24px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+    }
+
+    /* ===== Intro Card ===== */
+    .intro-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      margin-bottom: 48px;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-md);
+    }
+
+    .intro-card h2 {
+      margin-bottom: 14px;
+      font-size: 22px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .intro-card p {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+
+    .intro-card code {
+      display: block;
+      margin-top: 14px;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, #334155 100%);
+      border-radius: 14px;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      color: var(--primary-light);
+    }
+
+    /* ===== 替代方案展示 ===== */
+    .alternatives {
+      margin-top: 60px;
+      padding: 32px;
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-md);
+    }
+
+    .alternatives h2 {
+      margin-bottom: 24px;
+      font-size: 22px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .alt-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .alt-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .alt-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .alt-card h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .alt-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .alt-card .pros {
+      margin-top: 14px;
+      font-size: 13px;
+      background: var(--bg-card);
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .alt-card .pros span {
+      display: block;
+      padding: 4px 0;
+      font-weight: 500;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      body {
+        padding: 40px 16px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .phone-frame {
+        width: 100%;
+        max-width: 340px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI 伴学小程序</h1>
+    <p class="subtitle">清新薄荷 · 智能伴学 · 快乐成长</p>
+
+    <div class="intro-card">
+      <h2>✨ 设计亮点</h2>
+      <p>
+        <strong>🎨 清新配色：</strong>薄荷绿主色调 + 活力橙强调色，舒适护眼<br>
+        <strong>📊 进度可视化：</strong>大数字进度卡片，学习成果一目了然<br>
+        <strong>⚙️ 任务设置：</strong>每日新词/复习数量可调，灵活学习<br>
+        <strong>🎮 模式选择：</strong>分段式控制器，多种学习模式<br>
+        <strong>🚀 快捷入口：</strong>网格布局功能入口，操作便捷
+      </p>
+    </div>
+
+    <div class="phone-grid">
+      <!-- 首页 -->
+      <div class="phone-wrapper">
+        <div class="page-label">🏠 首页</div>
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="screen home-page">
+            <div class="user-header">
+              <div class="user-info">
+                <div class="user-left">
+                  <div class="avatar">👧</div>
+                  <div class="user-text">
+                    <h3>乐乐</h3>
+                    <p>三年级 · 上册</p>
+                  </div>
+                </div>
+                <div class="header-actions">
+                  <button class="icon-btn">🔔</button>
+                  <button class="icon-btn">⚙️</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 学习进度大卡片 -->
+            <div class="progress-hero">
+              <div class="progress-hero-content">
+                <div class="progress-hero-title">今日学习进度</div>
+                <div class="progress-hero-big">
+                  <span class="big-number">6</span>
+                  <span class="big-unit">/ 8 个任务</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar-fill"></div>
+                </div>
+                <div class="progress-hero-stats">
+                  <div class="stat-item">
+                    <div class="stat-icon">🔥</div>
+                    <span>连续 5 天</span>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-icon">⭐</div>
+                    <span>128 积分</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 每日任务设置卡片 -->
+            <div class="daily-task-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <div class="card-title-icon">📚</div>
+                  每日任务设置
+                </div>
+              </div>
+              <div class="task-setting-row">
+                <div class="task-setting-label">
+                  <div class="task-icon new">📖</div>
+                  <div>
+                    <div class="task-setting-text">新任务</div>
+                    <div class="task-setting-desc">每日新增学习内容</div>
+                  </div>
+                </div>
+                <div class="number-stepper">
+                  <button class="stepper-btn">−</button>
+                  <span class="stepper-value">5</span>
+                  <button class="stepper-btn">+</button>
+                </div>
+              </div>
+              <div class="task-setting-row">
+                <div class="task-setting-label">
+                  <div class="task-icon review">🔄</div>
+                  <div>
+                    <div class="task-setting-text">复习任务</div>
+                    <div class="task-setting-desc">巩固已学内容</div>
+                  </div>
+                </div>
+                <div class="number-stepper">
+                  <button class="stepper-btn">−</button>
+                  <span class="stepper-value">10</span>
+                  <button class="stepper-btn">+</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 模式选择 -->
+            <div class="mode-section">
+              <div class="segment-control">
+                <button class="segment-item active">智能推荐</button>
+                <button class="segment-item">复习优先</button>
+                <button class="segment-item">自由学习</button>
+              </div>
+            </div>
+
+            <!-- 快捷功能入口 -->
+            <div class="quick-actions">
+              <div class="quick-grid">
+                <button class="quick-item">
+                  <div class="quick-icon purple">📝</div>
+                  <span class="quick-label">错题本</span>
+                </button>
+                <button class="quick-item">
+                  <div class="quick-icon orange">📊</div>
+                  <span class="quick-label">学习报告</span>
+                </button>
+                <button class="quick-item">
+                  <div class="quick-icon green">🏆</div>
+                  <span class="quick-label">成就</span>
+                </button>
+                <button class="quick-item">
+                  <div class="quick-icon blue">👤</div>
+                  <span class="quick-label">我的</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 今日闪光时刻 -->
+            <div class="flash-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <div class="card-title-icon">✨</div>
+                  今日闪光时刻
+                </div>
+              </div>
+              <div class="flash-list">
+                <div class="flash-item">
+                  <div class="flash-icon math">📐</div>
+                  <div class="flash-content">
+                    <div class="flash-text">数学错题回顾</div>
+                    <div class="flash-time">今天 09:30</div>
+                  </div>
+                  <div class="flash-xp">+5</div>
+                </div>
+                <div class="flash-item">
+                  <div class="flash-icon read">📖</div>
+                  <div class="flash-content">
+                    <div class="flash-text">主动阅读课外书</div>
+                    <div class="flash-time">今天 14:20</div>
+                  </div>
+                  <div class="flash-xp">+3</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 底部等距风格插图 -->
+            <div class="illustration-section">
+              <div class="isometric-scene">
+                <div class="iso-item">
+                  <div class="iso-book"></div>
+                </div>
+                <div class="iso-item">
+                  <div class="iso-pencil"></div>
+                </div>
+                <div class="iso-item">
+                  <div class="iso-trophy">
+                    <div class="trophy-handle left"></div>
+                    <div class="trophy-handle right"></div>
+                    <div class="trophy-cup"></div>
+                    <div class="trophy-base"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="illustration-text">坚持学习，收获成长 🌱</div>
+            </div>
+
+            <!-- 开始学习按钮 -->
+            <div class="start-btn-container">
+              <button class="start-btn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                开始今日学习
+              </button>
+            </div>
+          </div>
+
+          <div class="tab-bar">
+            <div class="tab-item active">
+              <span class="tab-icon">🏠</span>
+              <span>首页</span>
+            </div>
+            <div class="tab-item">
+              <span class="tab-icon">📅</span>
+              <span>计划</span>
+            </div>
+            <div class="tab-item">
+              <span class="tab-icon">📝</span>
+              <span>错题本</span>
+            </div>
+            <div class="tab-item">
+              <span class="tab-icon">📚</span>
+              <span>知识库</span>
+            </div>
+            <div class="tab-item">
+              <span class="tab-icon">👤</span>
+              <span>我的</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 计划页 -->
+      <div class="phone-wrapper">
+        <div class="page-label">📅 计划</div>
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="screen plan-page">
+            <div class="plan-header">
+              <div class="plan-date">3 月 14 日</div>
+              <div class="plan-weekday">星期六</div>
+              <div class="plan-nav">
+                <button class="plan-nav-btn">‹</button>
+                <button class="plan-today">今天</button>
+                <button class="plan-nav-btn">›</button>
+              </div>
+            </div>
+
+            <div class="time-section">
+              <div class="section-title"><span class="icon">☀️</span>上午</div>
+              <div class="task-item completed">
+                <div class="task-checkbox">✓</div>
+                <div class="task-info">
+                  <div class="task-time">08:00 早餐</div>
+                </div>
+              </div>
+              <div class="task-item completed">
+                <div class="task-checkbox">✓</div>
+                <div class="task-info">
+                  <div class="task-time">09:00 数学练习</div>
+                  <div class="task-desc">两位数乘法专项</div>
+                </div>
+                <div class="task-badge">✅</div>
+              </div>
+              <div class="task-item completed">
+                <div class="task-checkbox">✓</div>
+                <div class="task-info">
+                  <div class="task-time">10:00 语文阅读</div>
+                  <div class="task-desc">《春日》古诗学习</div>
+                </div>
+                <div class="task-badge">✅</div>
+              </div>
+            </div>
+
+            <div class="time-section">
+              <div class="section-title"><span class="icon">🌤️</span>下午</div>
+              <div class="task-item">
+                <div class="task-checkbox"></div>
+                <div class="task-info">
+                  <div class="task-time">15:00 英语听力</div>
+                  <div class="task-desc">Unit 3 对话练习</div>
+                </div>
+                <div class="task-badge">⏳</div>
+              </div>
+              <div class="task-item">
+                <div class="task-checkbox"></div>
+                <div class="task-info">
+                  <div class="task-time">16:00 美术课</div>
+                  <div class="task-desc">少年宫</div>
+                </div>
+                <div class="task-badge">📍</div>
+              </div>
+            </div>
+
+            <div class="time-section">
+              <div class="section-title"><span class="icon">🌙</span>晚上</div>
+              <div class="task-item">
+                <div class="task-checkbox"></div>
+                <div class="task-info">
+                  <div class="task-time">19:00 错题回顾</div>
+                  <div class="task-desc">相似三角形</div>
+                </div>
+              </div>
+              <div class="task-item">
+                <div class="task-checkbox"></div>
+                <div class="task-info">
+                  <div class="task-time">20:00 自由时间</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 开始学习按钮 -->
+            <div class="start-btn-container">
+              <button class="start-btn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <path d="M12 19v4M8 23h8"/>
+                </svg>
+                语音添加任务
+              </button>
+            </div>
+          </div>
+
+          <div class="tab-bar">
+            <div class="tab-item">
+              <span class="tab-icon">🏠</span>
+              <span>首页</span>
+            </div>
+            <div class="tab-item active">
+              <span class="tab-icon">📅</span>
+              <span>计划</span>
+            </div>
+            <div class="tab-item">
+              <span class="tab-icon">📝</span>
+              <span>错题本</span>
+            </div>
+            <div class="tab-item">
+              <span class="tab-icon">📚</span>
+              <span>知识库</span>
+            </div>
+            <div class="tab-item">
+              <span class="tab-icon">👤</span>
+              <span>我的</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 替代方案参考 -->
+    <div class="alternatives">
+      <h2>🔍 打卡积累设计参考</h2>
+      <div class="alt-grid">
+        <div class="alt-card">
+          <h3>🌱 种子成长类</h3>
+          <p>类似"Forest 专注森林"，每完成一个任务种下一颗种子，逐渐长成大树。视觉反馈强，情感连接深。</p>
+          <div class="pros">
+            <span>✅ 情感化设计，用户粘性高</span>
+            <span>✅ 长期目标可视化</span>
+            <span>⚠️ 需要精美插画资源</span>
+          </div>
+        </div>
+
+        <div class="alt-card">
+          <h3>🏆 成就勋章类</h3>
+          <p>类似"Duolingo 多邻国"，完成任务获得勋章/徽章，收集式激励。适合短期目标。</p>
+          <div class="pros">
+            <span>✅ 即时反馈强</span>
+            <span>✅ 收集欲驱动</span>
+            <span>⚠️ 长期可能疲劳</span>
+          </div>
+        </div>
+
+        <div class="alt-card">
+          <h3>📊 数据可视化类</h3>
+          <p>类似"GitHub Contribution Graph"，用热力图展示连续打卡记录。简洁直观。</p>
+          <div class="pros">
+            <span>✅ 极简设计</span>
+            <span>✅ 成就感直观</span>
+            <span>⚠️ 情感连接较弱</span>
+          </div>
+        </div>
+
+        <div class="alt-card">
+          <h3>🐣 宠物养成类</h3>
+          <p>类似"Tabata Timer"，完成任务喂养虚拟宠物，宠物会成长进化。互动性强。</p>
+          <div class="pros">
+            <span>✅ 互动性最强</span>
+            <span>✅ 情感投射好</span>
+            <span>⚠️ 开发成本高</span>
+          </div>
+        </div>
+
+        <div class="alt-card">
+          <h3>🌙 星空收集类</h3>
+          <p>每完成一个任务点亮一颗星星，逐渐填满星空。适合夜间场景，视觉美。</p>
+          <div class="pros">
+            <span>✅ 视觉冲击强</span>
+            <span>✅ 适合全年龄段</span>
+            <span>⚠️ 需要粒子效果</span>
+          </div>
+        </div>
+
+        <div class="alt-card">
+          <h3>📚 书架积累类</h3>
+          <p>每完成一个任务获得一本书，逐渐填满书架。与学习主题契合度高。</p>
+          <div class="pros">
+            <span>✅ 与学习场景契合</span>
+            <span>✅ 易于理解</span>
+            <span>⚠️ 视觉变化有限</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="intro-card" style="margin-top: 48px;">
+      <h2>🔗 访问方式</h2>
+      <p style="margin-top: 12px;">
+        <strong>直接访问:</strong>
+        <code>http://8.130.161.121:8888</code>
+      </p>
+      <p style="margin-top: 12px;">
+        <strong>SSH 隧道 (推荐):</strong>
+        <code>ssh -L 8888:localhost:8888 ecs-user@8.130.161.121</code>
+        <span style="display:block; margin-top:8px; font-size:13px; color: var(--text-tertiary);">然后访问 http://localhost:8888</span>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // 任务复选框交互
+    document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('click', function() {
+        const taskItem = this.closest('.task-item');
+        const isCompleted = this.innerHTML === '✓';
+
+        if (isCompleted) {
+          this.innerHTML = '';
+          taskItem.classList.remove('completed');
+          const badge = taskItem.querySelector('.task-badge');
+          if (badge && badge.textContent === '✅') badge.remove();
+        } else {
+          this.innerHTML = '✓';
+          taskItem.classList.add('completed');
+          if (!taskItem.querySelector('.task-badge')) {
+            const badge = document.createElement('div');
+            badge.className = 'task-badge';
+            badge.textContent = '✅';
+            taskItem.appendChild(badge);
+          }
+        }
+      });
+    });
+
+    // 分段控制器交互
+    document.querySelectorAll('.segment-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.segment-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 数字步进器交互
+    document.querySelectorAll('.number-stepper').forEach(stepper => {
+      const minusBtn = stepper.querySelector('.stepper-btn:first-child');
+      const plusBtn = stepper.querySelector('.stepper-btn:last-child');
+      const valueEl = stepper.querySelector('.stepper-value');
+      let value = parseInt(valueEl.textContent);
+
+      minusBtn.addEventListener('click', () => {
+        if (value > 1) {
+          value--;
+          valueEl.textContent = value;
+        }
+      });
+
+      plusBtn.addEventListener('click', () => {
+        if (value < 50) {
+          value++;
+          valueEl.textContent = value;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
