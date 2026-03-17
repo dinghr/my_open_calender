@@ -1,6 +1,7 @@
 """
 AI 伴学小程序 - API 路由
 """
+import os
 from datetime import datetime, timedelta
 from typing import List, Optional
 from uuid import uuid4
@@ -18,8 +19,15 @@ from models import (
 )
 from ai_service import ai_service
 
+# 根据环境变量切换数据库
+ENV = os.getenv("APP_ENV", "development")
+if ENV == "production":
+    DB_PATH = os.getenv("DB_PATH", "data/prod.db")
+else:
+    DB_PATH = os.getenv("DB_PATH", "data/dev.db")
+
 # 数据库实例
-db = Database("data/app.db")
+db = Database(DB_PATH)
 
 # 获取数据库会话
 def get_db():

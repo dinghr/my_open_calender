@@ -26,3 +26,9 @@ credentials.json
 # OS
 .DS_Store
 Thumbs.db
+
+# 数据库文件（保留空数据库结构，排除实际数据）
+data/*.db
+!data/.gitkeep
+backend/data/*.db
+!backend/data/.gitkeep

@@ -1,15 +1,27 @@
 """AI 助学小程序 - FastAPI 后端"""
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes import router
 
-app = FastAPI(title="AI 助学小程序 API", version="0.2.0")
+# 环境配置
+ENV = os.getenv("APP_ENV", "development")
+DEBUG = os.getenv("DEBUG", "true").lower() == "true" if ENV == "development" else False
+
+app = FastAPI(title="AI 助学小程序 API", version="0.2.0", debug=DEBUG)
 
 # CORS - 允许前端访问
+if ENV == "production":
+    # 生产环境限制域名
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "https://yourdomain.com").split(",")
+else:
+    # 开发环境允许所有
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 开发环境，生产环境要限制
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
