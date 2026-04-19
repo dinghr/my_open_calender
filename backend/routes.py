@@ -15,7 +15,8 @@ from models import (
     LearningRecord, Subject, RelationType, ApprovalStatus, InviteLinkStatus,
     RecordType, RecordStatus,
     SpinosaurusRecord, PointsRecord, Reward, RewardRedemption, WishListItem,
-    Book, ReadingRecord, Bookshelf
+    Book, ReadingRecord, Bookshelf,
+    Poetry, PoetryMemory, PoetryStatus, MasteryLevel, PoetryLearning
 )
 from ai_service import ai_service
 
@@ -1177,3 +1178,338 @@ def update_reading_progress(
     session.commit()
 
     return {"message": "进度已更新", "progress": data.progress}
+
+
+# ==================== 古诗系统 API ====================
+
+# 记忆曲线复习间隔（天）
+MEMORY_INTERVALS = [1, 2, 4, 7, 15, 30]
+
+
+def calculate_next_review(review_count: int) -> datetime:
+    """计算下次复习时间（艾宾浩斯遗忘曲线）"""
+    idx = min(review_count, len(MEMORY_INTERVALS) - 1)
+    return datetime.utcnow() + timedelta(days=MEMORY_INTERVALS[idx])
+
+
+# ==================== 古诗相关请求模型 ====================
+
+class PoetryLineModel(BaseModel):
+    """诗句模型"""
+    text: str
+    pinyin: str
+    chars: List[dict]
+
+
+class PoetryResponse(BaseModel):
+    """古诗详情响应"""
+    id: Optional[str] = None
+    title: str
+    title_pinyin: Optional[str] = ""
+    author: Optional[str] = ""
+    dynasty: Optional[str] = ""
+    lines: List[PoetryLineModel] = []
+    translation: Optional[str] = ""
+    annotation: Optional[dict] = {}
+    grade: Optional[int] = None
+    semester: Optional[str] = ""
+    category: Optional[str] = "必背"
+    textbook: Optional[str] = "人教版"
+
+
+class PoetryLearningResponse(BaseModel):
+    """古诗学习记录响应"""
+    id: str
+    title: str
+    author: Optional[str]
+    dynasty: Optional[str]
+    grade: Optional[int]
+    mastery_level: str
+    mastery_text: str
+    review_count: int
+    next_review_at: Optional[datetime]
+    first_learned_at: Optional[datetime]
+
+
+class PoetryLearnRequest(BaseModel):
+    """记录学习古诗请求"""
+    student_id: str
+    title: str
+    author: Optional[str] = ""
+    dynasty: Optional[str] = ""
+    grade: Optional[int] = None
+    textbook: Optional[str] = "人教版"
+    mastery_level: str = "new"  # new, unfamiliar, familiar, mastered
+
+
+# ==================== 古诗 API（AI动态生成） ====================
+
+@router.get("/poetry/recommend")
+async def get_poetry_recommend(
+    student_id: Optional[str] = None,
+    grade: int = 1,
+    textbook: str = "人教版",
+    session: Session = Depends(get_db)
+):
+    """AI推荐古诗（排除已学过的）"""
+    # 获取已学过的古诗标题
+    exclude_titles = []
+    if student_id:
+        learned = session.query(PoetryLearning).filter(
+            PoetryLearning.student_id == student_id
+        ).all()
+        exclude_titles = [p.title for p in learned]
+
+    # 调用AI生成古诗
+    try:
+        result = await ai_service.generate_poetry(grade, textbook, exclude_titles)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"error": f"AI调用失败: {str(e)}"}
+
+    if "error" in result:
+        return {"error": result["error"]}
+
+    # 添加唯一标识（用标题作为临时ID）
+    result["id"] = f"poetry-{hash(result.get('title', '')) % 10000:04d}"
+
+    return result
+
+
+class PoetryChatRequest(BaseModel):
+    """古诗对话请求"""
+    message: str
+    student_id: Optional[str] = None
+    grade: Optional[int] = 1
+    textbook: Optional[str] = "人教版"
+
+
+@router.post("/poetry/chat")
+async def poetry_chat(
+    data: PoetryChatRequest,
+    session: Session = Depends(get_db)
+):
+    """AI对话推荐古诗"""
+    # 获取已学过的古诗标题
+    exclude_titles = []
+    if data.student_id:
+        learned = session.query(PoetryLearning).filter(
+            PoetryLearning.student_id == data.student_id
+        ).all()
+        exclude_titles = [p.title for p in learned]
+
+    # 调用AI生成古诗
+    try:
+        result = await ai_service.generate_poetry(
+            data.grade or 1,
+            data.textbook or "人教版",
+            exclude_titles
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "reply": "抱歉，我现在有点累了，稍后再聊吧～",
+            "poetry": None,
+            "suggestions": ["李白", "杜甫", "春天", "思乡", "随机"]
+        }
+
+    if "error" in result:
+        return {
+            "reply": "哎呀，出了点问题，换个话题试试？",
+            "poetry": None,
+            "suggestions": ["李白", "杜甫", "春天", "思乡", "随机"]
+        }
+
+    # 添加唯一标识
+    result["id"] = f"poetry-{hash(result.get('title', '')) % 10000:04d}"
+
+    # 生成介绍文本
+    intro = f"这首诗是《{result.get('title', '')}》"
+    if result.get('author'):
+        intro += f"，作者是{result.get('dynasty', '')}诗人{result['author']}"
+    intro += "。让我来介绍一下这首诗吧！"
+
+    return {
+        "reply": intro,
+        "poetry": result,
+        "suggestions": ["换个主题", "再推荐一首", "开始学习"]
+    }
+
+
+@router.get("/poetry/content")
+async def get_poetry_content(
+    title: str,
+    author: Optional[str] = None
+):
+    """获取指定古诗的完整内容（AI生成）"""
+    result = await ai_service.get_poetry_content(title, author)
+
+    if "error" in result:
+        return {"error": result["error"]}
+
+    result["id"] = f"poetry-{hash(title) % 10000:04d}"
+    return result
+
+
+@router.post("/poetry/learn")
+def record_poetry_learning(
+    data: PoetryLearnRequest,
+    session: Session = Depends(get_db)
+):
+    """记录学习古诗"""
+    now = datetime.utcnow()
+
+    # 检查是否已存在记录
+    existing = session.query(PoetryLearning).filter(
+        PoetryLearning.student_id == data.student_id,
+        PoetryLearning.title == data.title
+    ).first()
+
+    if existing:
+        # 更新学习状态
+        existing.mastery_level = MasteryLevel(data.mastery_level)
+        existing.last_reviewed_at = now
+        existing.review_count += 1
+        existing.next_review_at = calculate_next_review(existing.review_count)
+
+        if data.mastery_level == "mastered":
+            existing.memory_strength = 1.0
+        elif data.mastery_level == "familiar":
+            existing.memory_strength = 0.7
+        else:
+            existing.memory_strength = 0.3
+
+        session.commit()
+
+        return {
+            "message": "学习状态已更新",
+            "title": existing.title,
+            "mastery_level": data.mastery_level,
+            "next_review_at": existing.next_review_at.isoformat() if existing.next_review_at else None
+        }
+
+    # 创建新的学习记录
+    learning = PoetryLearning(
+        id=str(uuid4()),
+        student_id=data.student_id,
+        title=data.title,
+        author=data.author,
+        dynasty=data.dynasty,
+        grade=data.grade,
+        textbook=data.textbook,
+        mastery_level=MasteryLevel(data.mastery_level),
+        first_learned_at=now,
+        last_reviewed_at=now,
+        review_count=1,
+        next_review_at=calculate_next_review(0),
+        memory_strength=0.3 if data.mastery_level != "mastered" else 1.0
+    )
+    session.add(learning)
+    session.commit()
+
+    return {
+        "message": "学习记录已保存",
+        "title": data.title,
+        "mastery_level": data.mastery_level,
+        "next_review_at": learning.next_review_at.isoformat() if learning.next_review_at else None
+    }
+
+
+@router.get("/poetry/memory/{student_id}")
+def get_poetry_memory_list(
+    student_id: str,
+    session: Session = Depends(get_db)
+):
+    """获取学生的古诗学习记录"""
+    records = session.query(PoetryLearning).filter(
+        PoetryLearning.student_id == student_id
+    ).order_by(PoetryLearning.last_reviewed_at.desc()).all()
+
+    mastery_texts = {
+        "new": "新学",
+        "unfamiliar": "不太熟",
+        "familiar": "熟悉",
+        "mastered": "会背了"
+    }
+
+    return [{
+        "id": r.id,
+        "title": r.title,
+        "author": r.author,
+        "dynasty": r.dynasty,
+        "grade": r.grade,
+        "mastery_level": r.mastery_level.value if r.mastery_level else "new",
+        "mastery_text": mastery_texts.get(r.mastery_level.value if r.mastery_level else "new", "新学"),
+        "review_count": r.review_count,
+        "next_review_at": r.next_review_at.isoformat() if r.next_review_at else None,
+        "first_learned_at": r.first_learned_at.isoformat() if r.first_learned_at else None
+    } for r in records]
+
+
+@router.get("/poetry/review/{student_id}")
+async def get_poetry_review(
+    student_id: str,
+    session: Session = Depends(get_db)
+):
+    """获取待复习古诗"""
+    now = datetime.utcnow()
+
+    # 查找需要复习的古诗
+    records = session.query(PoetryLearning).filter(
+        PoetryLearning.student_id == student_id,
+        PoetryLearning.next_review_at <= now,
+        PoetryLearning.mastery_level != MasteryLevel.MASTERED
+    ).all()
+
+    result = []
+    for r in records:
+        # 用AI重新生成古诗内容
+        content = await ai_service.get_poetry_content(r.title, r.author)
+        if "error" not in content:
+            content["id"] = r.id
+            content["mastery_level"] = r.mastery_level.value if r.mastery_level else "new"
+            content["review_count"] = r.review_count
+            result.append(content)
+
+    return {
+        "count": len(result),
+        "items": result
+    }
+
+
+# ==================== 兼容旧API（过渡期保留） ====================
+
+@router.get("/poetry/list")
+async def get_poetry_list_compat(
+    grade: Optional[int] = None,
+    semester: Optional[str] = None,
+    textbook: Optional[str] = None,
+    session: Session = Depends(get_db)
+):
+    """获取古诗列表（兼容旧API，返回AI生成的推荐）"""
+    grade = grade or 1
+    textbook = textbook or "人教版"
+
+    # 调用AI生成古诗
+    result = await ai_service.generate_poetry(grade, textbook)
+
+    if "error" in result:
+        return []
+
+    result["id"] = f"poetry-{hash(result.get('title', '')) % 10000:04d}"
+    return [result]
+
+
+@router.get("/poetry/{poetry_id}")
+async def get_poetry_compat(poetry_id: str):
+    """获取古诗详情（兼容旧API）"""
+    # 由于不再存储古诗，返回AI生成的新古诗
+    result = await ai_service.generate_poetry(1, "人教版")
+
+    if "error" in result:
+        return {"error": "古诗不存在"}
+
+    result["id"] = poetry_id
+    return result

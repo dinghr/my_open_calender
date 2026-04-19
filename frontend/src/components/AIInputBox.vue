@@ -137,7 +137,7 @@ const handleCamera = () => {
   input.capture = 'environment'
   
   input.onchange = (e) => {
-    const target = e.target
+    const target = e.target as HTMLInputElement
     const file = target?.files?.[0]
     if (file) {
       emit('camera', file)

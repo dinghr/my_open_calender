@@ -2,10 +2,8 @@
  * AI 伴学小程序 - API 服务
  */
 
-// API 基础地址 - 根据环境自动切换
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000/api/v1'
-  : 'http://8.130.161.121:8000/api/v1'
+// API 基础地址 - 使用相对路径，通过Vite代理转发
+const API_BASE = '/api/v1'
 
 interface ApiResponse<T> {
   data?: T
@@ -184,6 +182,158 @@ export const dailyPracticeApi = {
       const res = await fetch(`${API_BASE}/daily-practice/${recordId}/complete`, {
         method: 'POST'
       })
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  }
+}
+
+// 古诗相关 API（AI动态生成）
+export const poetryApi = {
+  // AI对话推荐古诗
+  chat: async (data: {
+    message: string
+    student_id?: string
+    grade?: number
+    textbook?: string
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const res = await fetch(`${API_BASE}/poetry/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 获取AI推荐古诗
+  recommend: async (params?: {
+    student_id?: string
+    grade?: number
+    textbook?: string
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const query = new URLSearchParams()
+      if (params?.student_id) query.append('student_id', params.student_id)
+      if (params?.grade) query.append('grade', params.grade.toString())
+      if (params?.textbook) query.append('textbook', params.textbook)
+
+      const url = query.toString()
+        ? `${API_BASE}/poetry/recommend?${query.toString()}`
+        : `${API_BASE}/poetry/recommend`
+
+      const res = await fetch(url)
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 获取古诗列表（兼容旧API，返回AI生成的推荐）
+  list: async (params?: {
+    grade?: number
+    semester?: string
+    textbook?: string
+  }): Promise<ApiResponse<any[]>> => {
+    try {
+      const query = new URLSearchParams()
+      if (params?.grade) query.append('grade', params.grade.toString())
+      if (params?.semester) query.append('semester', params.semester)
+      if (params?.textbook) query.append('textbook', params.textbook)
+
+      const url = query.toString()
+        ? `${API_BASE}/poetry/list?${query.toString()}`
+        : `${API_BASE}/poetry/list`
+
+      const res = await fetch(url)
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 获取古诗详情
+  get: async (poetryId: string): Promise<ApiResponse<any>> => {
+    try {
+      const res = await fetch(`${API_BASE}/poetry/${poetryId}`)
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 获取古诗内容（新API）
+  getContent: async (title: string, author?: string): Promise<ApiResponse<any>> => {
+    try {
+      const query = new URLSearchParams()
+      query.append('title', title)
+      if (author) query.append('author', author)
+
+      const res = await fetch(`${API_BASE}/poetry/content?${query.toString()}`)
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 记录学习古诗（新API）
+  learn: async (data: {
+    student_id: string
+    title: string
+    author?: string
+    dynasty?: string
+    grade?: number
+    textbook?: string
+    mastery_level: 'new' | 'unfamiliar' | 'familiar' | 'mastered'
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const res = await fetch(`${API_BASE}/poetry/learn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 获取学生的学习记录列表
+  getMemoryList: async (studentId: string): Promise<ApiResponse<any[]>> => {
+    try {
+      const res = await fetch(`${API_BASE}/poetry/memory/${studentId}`)
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 提交学习状态（兼容旧API）
+  submitMemory: async (data: {
+    student_id: string
+    poetry_id: string
+    mastery_level: 'new' | 'unfamiliar' | 'familiar' | 'mastered'
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const res = await fetch(`${API_BASE}/poetry/memory`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 获取待复习古诗
+  getReviewList: async (studentId: string): Promise<ApiResponse<any>> => {
+    try {
+      const res = await fetch(`${API_BASE}/poetry/review/${studentId}`)
       return { data: await res.json() }
     } catch (e: any) {
       return { error: e.message }

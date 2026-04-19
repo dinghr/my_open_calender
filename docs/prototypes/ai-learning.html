@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 学习 - AI 伴学小程序原型</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
+
+    /* ===== 设计令牌 ===== */
+    :root {
+      /* 学科主题色 */
+      --chinese-primary: #EF4444;
+      --chinese-light: #FCA5A5;
+      --chinese-bg: #FEF2F2;
+      
+      --math-primary: #3B82F6;
+      --math-light: #93C5FD;
+      --math-bg: #EFF6FF;
+      
+      --english-primary: #10B981;
+      --english-light: #6EE7B7;
+      --english-bg: #ECFDF5;
+
+      /* 主色调 */
+      --primary: #14B8A6;
+      --primary-light: #2DD4BF;
+      --accent: #F97316;
+
+      /* 背景色 */
+      --bg-primary: #F8FAFC;
+      --bg-secondary: #F1F5F9;
+      --bg-card: #FFFFFF;
+
+      /* 文字色 */
+      --text-primary: #1E293B;
+      --text-secondary: #64748B;
+      --text-tertiary: #94A3B8;
+
+      /* 边框和阴影 */
+      --border-color: #E2E8F0;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+      /* 圆角 */
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 20px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(180deg, #F0FDF9 0%, #F8FAFC 50%, #F1F5F9 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .phone-frame {
+      width: 375px;
+      min-height: 812px;
+      background: var(--bg-primary);
+      border-radius: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      position: relative;
+      border: 8px solid #1E293B;
+    }
+
+    .status-bar {
+      height: 44px;
+      background: var(--bg-card);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .nav-bar {
+      height: 56px;
+      background: var(--bg-card);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav-back {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .nav-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .nav-points {
+      background: var(--accent-bg);
+      color: var(--accent);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .content {
+      height: calc(812px - 44px - 56px - 83px);
+      overflow-y: auto;
+      padding: 20px 16px;
+    }
+
+    /* AI 助手卡片 */
+    .ai-assistant {
+      background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      color: white;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .ai-avatar {
+      width: 64px;
+      height: 64px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      flex-shrink: 0;
+    }
+
+    .ai-info h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .ai-info p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    /* 统计卡片 */
+    .stats-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stats-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .stats-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stats-more {
+      font-size: 13px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      line-height: 1.3;
+    }
+
+    /* 学科选择 */
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .subjects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .subject-card {
+      border-radius: var(--radius-md);
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subject-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .subject-card.chinese {
+      background: linear-gradient(135deg, var(--chinese-primary), var(--chinese-light));
+      color: white;
+    }
+
+    .subject-card.math {
+      background: linear-gradient(135deg, var(--math-primary), var(--math-light));
+      color: white;
+    }
+
+    .subject-card.english {
+      background: linear-gradient(135deg, var(--english-primary), var(--english-light));
+      color: white;
+    }
+
+    .subject-icon {
+      font-size: 32px;
+    }
+
+    .subject-name {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .subject-count {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    /* 热门功能 */
+    .hot-functions {
+      margin-bottom: 24px;
+    }
+
+    .function-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .function-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .function-card.hot {
+      border: 2px solid transparent;
+      background-image: linear-gradient(#FFFFFF, #FFFFFF), 
+                        linear-gradient(135deg, #F97316, #EF4444);
+      background-origin: border-box;
+      background-clip: padding-box, border-box;
+    }
+
+    .function-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .function-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .function-icon.chinese { background: var(--chinese-bg); }
+    .function-icon.math { background: var(--math-bg); }
+    .function-icon.english { background: var(--english-bg); }
+
+    .function-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .function-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .function-stats {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .stat-badge.hot {
+      color: #F97316;
+    }
+
+    .function-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .use-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .use-btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .cost-badge {
+      background: var(--accent-bg);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* 批改记录 */
+    .records-section {
+      margin-bottom: 24px;
+    }
+
+    .record-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 10px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .record-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: var(--bg-secondary);
+    }
+
+    .record-info {
+      flex: 1;
+    }
+
+    .record-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .record-status {
+      font-size: 12px;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .record-score {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .record-arrow {
+      color: var(--text-tertiary);
+      font-size: 18px;
+    }
+
+    /* 底部导航 */
+    .tab-bar {
+      height: 83px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      padding-top: 8px;
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 4px 12px;
+    }
+
+    .tab-icon {
+      font-size: 24px;
+    }
+
+    .tab-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    .tab-item.active .tab-icon {
+      filter: grayscale(0);
+    }
+
+    .tab-item.active .tab-label {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* 滚动条隐藏 */
+    .content::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>📶 🔋</span>
+    </div>
+
+    <!-- 导航栏 -->
+    <div class="nav-bar">
+      <div class="nav-back">←</div>
+      <div class="nav-title">AI 学习</div>
+      <div class="nav-points">
+        <span>💰</span>
+        <span>280</span>
+      </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="content">
+      <!-- AI 助手卡片 -->
+      <div class="ai-assistant">
+        <div class="ai-avatar">👩‍🏫</div>
+        <div class="ai-info">
+          <h2>小 E 老师</h2>
+          <p>今天想学什么呢？</p>
+        </div>
+      </div>
+
+      <!-- 学习统计 -->
+      <div class="stats-card">
+        <div class="stats-header">
+          <div class="stats-title">📊 学习统计</div>
+          <a href="#" class="stats-more">查看全部 →</a>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value">12</div>
+            <div class="stat-label">本周学习<br>次数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">+280</div>
+            <div class="stat-label">获得<br>积分</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">85%</div>
+            <div class="stat-label">正确率</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">3</div>
+            <div class="stat-label">连续<br>天数</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 学科选择 -->
+      <div class="section-title">📚 选择学科</div>
+      <div class="subjects-grid">
+        <div class="subject-card chinese">
+          <div class="subject-icon">🇨🇳</div>
+          <div class="subject-name">语文</div>
+          <div class="subject-count">12 功能</div>
+        </div>
+        <div class="subject-card math">
+          <div class="subject-icon">🔢</div>
+          <div class="subject-name">数学</div>
+          <div class="subject-count">8 功能</div>
+        </div>
+        <div class="subject-card english">
+          <div class="subject-icon">🔤</div>
+          <div class="subject-name">英语</div>
+          <div class="subject-count">6 功能</div>
+        </div>
+      </div>
+
+      <!-- 热门功能 -->
+      <div class="hot-functions">
+        <div class="section-title">🔥 热门功能</div>
+        
+        <div class="function-card hot">
+          <div class="function-header">
+            <div class="function-icon chinese">📝</div>
+            <div class="function-title">作文批改</div>
+          </div>
+          <div class="function-desc">AI 智能批改，提供修改建议</div>
+          <div class="function-stats">
+            <span class="stat-badge hot">🔥 1.2 万次使用</span>
+          </div>
+          <div class="function-footer">
+            <button class="use-btn">开始使用</button>
+            <span class="cost-badge">-5 点数</span>
+          </div>
+        </div>
+
+        <div class="function-card">
+          <div class="function-header">
+            <div class="function-icon english">🔤</div>
+            <div class="function-title">单词默写</div>
+          </div>
+          <div class="function-desc">同步教材，自动报词</div>
+          <div class="function-stats">
+            <span class="stat-badge">📊 8500 次使用</span>
+          </div>
+          <div class="function-footer">
+            <button class="use-btn">开始使用</button>
+            <span class="cost-badge">-3 点数</span>
+          </div>
+        </div>
+
+        <div class="function-card">
+          <div class="function-header">
+            <div class="function-icon math">🧮</div>
+            <div class="function-title">口算批改</div>
+          </div>
+          <div class="function-desc">拍照识别，快速批改</div>
+          <div class="function-stats">
+            <span class="stat-badge">📊 6300 次使用</span>
+          </div>
+          <div class="function-footer">
+            <button class="use-btn">开始使用</button>
+            <span class="cost-badge">-2 点数</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 批改记录 -->
+      <div class="records-section">
+        <div class="section-title">📋 批改记录</div>
+        
+        <div class="record-card">
+          <div class="record-icon">📝</div>
+          <div class="record-info">
+            <div class="record-title">作文《我的妈妈》</div>
+            <div class="record-status">✓ 已批改</div>
+          </div>
+          <div class="record-arrow">›</div>
+        </div>
+
+        <div class="record-card">
+          <div class="record-icon">🔤</div>
+          <div class="record-info">
+            <div class="record-title">Unit 3 单词默写</div>
+            <div class="record-score">95 分</div>
+          </div>
+          <div class="record-arrow">›</div>
+        </div>
+
+        <div class="record-card">
+          <div class="record-icon">🧮</div>
+          <div class="record-info">
+            <div class="record-title">口算练习</div>
+            <div class="record-status">✓ 全对</div>
+          </div>
+          <div class="record-arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="tab-bar">
+      <div class="tab-item">
+        <div class="tab-icon">🏠</div>
+        <div class="tab-label">首页</div>
+      </div>
+      <div class="tab-item">
+        <div class="tab-icon">📋</div>
+        <div class="tab-label">计划</div>
+      </div>
+      <div class="tab-item active">
+        <div class="tab-icon">🤖</div>
+        <div class="tab-label">AI 学习</div>
+      </div>
+      <div class="tab-item">
+        <div class="tab-icon">📕</div>
+        <div class="tab-label">错题本</div>
+      </div>
+      <div class="tab-item">
+        <div class="tab-icon">👨‍👩‍👧</div>
+        <div class="tab-label">家长</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

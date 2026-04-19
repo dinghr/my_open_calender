@@ -66,7 +66,7 @@ const emit = defineEmits<{
 const navItems: NavItem[] = [
   { key: 'home', label: '首页' },
   { key: 'plan', label: '计划' },
-  { key: 'ai', label: 'AI 学', icon: 'ai' },
+  { key: 'ai', label: 'AI 学习', icon: 'ai' },
   { key: 'reading', label: '阅读' },
   { key: 'parent', label: '家长' },
 ]

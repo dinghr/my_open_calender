@@ -468,11 +468,16 @@ const spinosaurusRef = ref<InstanceType<typeof Spinosaurus> | null>(null)
 // 小朋友信息
 const currentChild = reactive({
   id: 'e756948a-b945-412f-b969-80cc326abe64',
-  nickname: '乐乐',
-  gender: 'girl',
-  grade: '三年级',
-  age: 8,
-  hobbies: '🎨画画 · 📚阅读 · 🎵钢琴'
+  nickname: 'movern',
+  gender: 'boy',
+  grade: '一年级',
+  semester: '下学期',
+  region: '江苏省',
+  age: 7,
+  hobbies: '🦖恐龙 · ⚽足球',
+  textbook: {
+    chinese: '人教版'
+  }
 })
 
 const currentStudentId = ref('e756948a-b945-412f-b969-80cc326abe64')
@@ -650,12 +655,14 @@ const showChildSwitch = ref(false)
 const childrenList = ref([
   {
     id: 'e756948a-b945-412f-b969-80cc326abe64',
-    nickname: '乐乐',
-    gender: 'girl' as const,
-    grade: '三年级',
-    age: 8,
+    nickname: 'movern',
+    gender: 'boy' as const,
+    grade: '一年级',
+    semester: '下学期',
+    region: '江苏省',
+    age: 7,
     textbook: '人教版',
-    hobbies: '🎨画画 · 📚阅读 · 🎵钢琴'
+    hobbies: '🦖恐龙 · ⚽足球'
   },
   {
     id: 'another-child-id',
@@ -771,7 +778,10 @@ const selectChild = (child: any) => {
   currentChild.nickname = child.nickname
   currentChild.gender = child.gender
   currentChild.grade = child.grade
+  currentChild.semester = child.semester || ''
+  currentChild.region = child.region || ''
   currentChild.age = child.age
+  currentChild.hobbies = child.hobbies
   currentStudentId.value = child.id
 }
 

@@ -100,6 +100,14 @@ class PoetryStatus(str, enum.Enum):
     MASTERED = "mastered"
 
 
+class MasteryLevel(str, enum.Enum):
+    """掌握程度"""
+    NEW = "new"  # 新学
+    UNFAMILIAR = "unfamiliar"  # 不太熟
+    FAMILIAR = "familiar"  # 熟悉
+    MASTERED = "mastered"  # 会背了
+
+
 class QuestionSource(str, enum.Enum):
     """题目来源"""
     TEXTBOOK = "textbook"  # 教材
@@ -153,6 +161,7 @@ class Student(Base):
     vocabulary = relationship("Vocabulary", back_populates="student")
     growth_tree = relationship("GrowthTree", back_populates="student", uselist=False)
     poetry_memory = relationship("PoetryMemory", back_populates="student")
+    poetry_learning = relationship("PoetryLearning", back_populates="student")
     wrong_questions = relationship("WrongQuestion", back_populates="student")
     teacher_advices = relationship("TeacherAdvice", back_populates="student")
     invite_links = relationship("InviteLink", back_populates="student")
@@ -316,25 +325,93 @@ class GrowthTree(Base):
     student = relationship("Student", back_populates="growth_tree")
 
 
+# ==================== 古诗系统 ====================
+
+class Poetry(Base):
+    """古诗库表"""
+    __tablename__ = "poetry"
+
+    id = Column(String(36), primary_key=True)
+    title = Column(String(100), nullable=False)  # 诗题
+    title_pinyin = Column(String(200))  # 诗题拼音
+    author = Column(String(100))  # 作者
+    dynasty = Column(String(50))  # 朝代
+
+    # 诗句（每句包含文字和拼音）
+    # [{"text": "床前明月光，", "pinyin": "chuáng qián míng yuè guāng", "chars": [{"char": "床", "pinyin": "chuáng"}, ...]}]
+    lines = Column(JSON, nullable=False)
+
+    translation = Column(Text)  # 译文
+    annotation = Column(JSON)  # 注释 {"words": [...], "background": "..."}
+
+    # 分类
+    grade = Column(Integer)  # 适用年级
+    semester = Column(String(20))  # 学期：上学期、下学期
+    category = Column(String(50))  # 分类：必背、选背、拓展
+    textbook = Column(String(50))  # 教材版本：人教版、北师大版等
+
+    # 统计
+    learn_count = Column(Integer, default=0)  # 学习人数
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 关系
+    memory_records = relationship("PoetryMemory", back_populates="poetry")
+
+
 class PoetryMemory(Base):
     """古诗记忆曲线表"""
     __tablename__ = "poetry_memory"
-    
+
     id = Column(String(36), primary_key=True)
     student_id = Column(String(36), ForeignKey("students.id"), nullable=False)
-    poetry_id = Column(String(36), nullable=False)  # 古诗 ID
+    poetry_id = Column(String(36), ForeignKey("poetry.id"), nullable=False)  # 古诗 ID
     poetry_title = Column(String(100))  # 古诗标题（冗余，方便查询）
     first_learned_at = Column(DateTime)
     last_reviewed_at = Column(DateTime)
     next_review_at = Column(DateTime)
     memory_strength = Column(Float, default=0.0)  # 记忆强度 0-1
     review_count = Column(Integer, default=0)  # 复习次数
+    mastery_level = Column(Enum(MasteryLevel), default=MasteryLevel.NEW)  # 掌握程度
     status = Column(Enum(PoetryStatus), default=PoetryStatus.LEARNING)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, onupdate=datetime.utcnow)
-    
+
     # 关系
     student = relationship("Student", back_populates="poetry_memory")
+    poetry = relationship("Poetry", back_populates="memory_records")
+
+
+class PoetryLearning(Base):
+    """古诗学习记录 - AI动态生成方案"""
+    __tablename__ = "poetry_learning"
+
+    id = Column(String(36), primary_key=True)
+    student_id = Column(String(36), ForeignKey("students.id"), nullable=False)
+
+    # 古诗标识（不依赖Poetry表）
+    title = Column(String(100), nullable=False)       # 诗题
+    author = Column(String(100))                      # 作者
+    dynasty = Column(String(50))                      # 朝代
+    grade = Column(Integer)                           # 年级
+    semester = Column(String(20))                     # 学期
+    textbook = Column(String(50))                     # 教材版本
+
+    # 学习状态
+    mastery_level = Column(Enum(MasteryLevel), default=MasteryLevel.NEW)
+    review_count = Column(Integer, default=0)
+    memory_strength = Column(Float, default=0.0)
+
+    # 时间记录
+    first_learned_at = Column(DateTime)
+    last_reviewed_at = Column(DateTime)
+    next_review_at = Column(DateTime)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.utcnow)
+
+    # 关系
+    student = relationship("Student", back_populates="poetry_learning")
 
 
 class ParentAdjustment(Base):
