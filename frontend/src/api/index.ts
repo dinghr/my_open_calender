@@ -330,10 +330,43 @@ export const poetryApi = {
     }
   },
 
-  // 获取待复习古诗
-  getReviewList: async (studentId: string): Promise<ApiResponse<any>> => {
+  }
+
+// 精读推荐相关 API
+export const readingRecommendApi = {
+  // 获取今日精读推荐
+  get: async (studentId: string): Promise<ApiResponse<any>> => {
     try {
-      const res = await fetch(`${API_BASE}/poetry/review/${studentId}`)
+      const res = await fetch(`${API_BASE}/reading/${studentId}/recommend`)
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 完成精读
+  complete: async (studentId: string, data: {
+    duration_minutes?: number
+    liked?: boolean
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const res = await fetch(`${API_BASE}/reading/${studentId}/recommend/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      return { data: await res.json() }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  },
+
+  // 换一篇精读
+  new: async (studentId: string): Promise<ApiResponse<any>> => {
+    try {
+      const res = await fetch(`${API_BASE}/reading/${studentId}/recommend/new`, {
+        method: 'POST'
+      })
       return { data: await res.json() }
     } catch (e: any) {
       return { error: e.message }

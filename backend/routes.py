@@ -1304,7 +1304,8 @@ async def poetry_chat(
         result = await ai_service.generate_poetry(
             data.grade or 1,
             data.textbook or "人教版",
-            exclude_titles
+            exclude_titles,
+            keyword=data.message
         )
     except Exception as e:
         import traceback
@@ -1512,4 +1513,184 @@ async def get_poetry_compat(poetry_id: str):
         return {"error": "古诗不存在"}
 
     result["id"] = poetry_id
+    return result
+
+
+# ==================== 精读推荐 API ====================
+
+class ReadingRecommendResponse(BaseModel):
+    """精读推荐响应"""
+    title: str
+    content: str
+    content_pinyin: List[dict]
+    word_count: int
+    analysis: dict
+    imitation_prompts: List[str]
+    reading_tip: str
+    grade: int
+    semester: str
+
+
+class ReadingRecommendComplete(BaseModel):
+    """完成精读反馈"""
+    duration_minutes: int = 0  # 阅读时长（分钟）
+    liked: bool = True  # 是否喜欢这篇材料
+
+
+@router.get("/reading/{student_id}/recommend", response_model=ReadingRecommendResponse)
+async def get_reading_recommend(
+    student_id: str,
+    session: Session = Depends(get_db)
+):
+    """获取今日精读推荐（一年级下学期）"""
+    # 获取学生信息
+    student = session.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        # 如果学生不存在，使用默认一年级设置
+        grade = 1
+        semester = "下学期"
+        vocabulary_size = 300
+        unknown_chars = []
+    else:
+        grade = student.grade or 1
+        semester = "下学期"  # 默认下学期
+        vocabulary_size = 300  # 一年级下学期识字量估计
+
+        # 获取不认识的生词
+        vocab_records = session.query(Vocabulary).filter(
+            Vocabulary.student_id == student_id,
+            Vocabulary.status == VocabularyStatus.UNKNOWN
+        ).limit(10).all()
+        unknown_chars = [v.character for v in vocab_records]
+
+    # 调用 AI 生成精读材料
+    try:
+        result = await ai_service.generate_reading_recommendation(
+            grade=grade,
+            semester=semester,
+            unknown_chars=unknown_chars,
+            vocabulary_size=vocabulary_size
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        # 返回备用材料
+        result = ai_service._get_fallback_reading()
+
+    return ReadingRecommendResponse(
+        title=result.get("title", ""),
+        content=result.get("content", ""),
+        content_pinyin=result.get("content_pinyin", []),
+        word_count=result.get("word_count", 0),
+        analysis=result.get("analysis", {}),
+        imitation_prompts=result.get("imitation_prompts", []),
+        reading_tip=result.get("reading_tip", ""),
+        grade=result.get("grade", 1),
+        semester=result.get("semester", "下学期")
+    )
+
+
+@router.post("/reading/{student_id}/recommend/complete")
+def complete_reading_recommend(
+    student_id: str,
+    data: ReadingRecommendComplete,
+    session: Session = Depends(get_db)
+):
+    """完成精读推荐，更新积分和棘龙"""
+    now = datetime.utcnow()
+
+    # 1. 添加积分（精读完成 +20积分）
+    current_balance = 0
+    existing_points = session.query(PointsRecord).filter(
+        PointsRecord.student_id == student_id
+    ).all()
+    current_balance = sum(p.points for p in existing_points)
+
+    points_record = PointsRecord(
+        id=str(uuid4()),
+        student_id=student_id,
+        points=20,
+        source="reading_recommend",
+        description="完成今日精读",
+        balance_after=current_balance + 20
+    )
+    session.add(points_record)
+
+    # 2. 更新棘龙经验
+    spinosaurus = session.query(SpinosaurusRecord).filter(
+        SpinosaurusRecord.student_id == student_id
+    ).first()
+
+    if not spinosaurus:
+        spinosaurus = SpinosaurusRecord(
+            id=str(uuid4()),
+            student_id=student_id,
+            level=1,
+            attack=100,
+            defense=50,
+            experience=0,
+            streak_days=0
+        )
+        session.add(spinosaurus)
+
+    spinosaurus.experience += 10
+
+    # 检查升级
+    exp_per_level = 100
+    while spinosaurus.experience >= spinosaurus.level * exp_per_level:
+        spinosaurus.level += 1
+        spinosaurus.attack += 10
+        spinosaurus.defense += 5
+
+    # 3. 记录阅读字数（创建临时阅读记录）
+    reading_record = ReadingRecord(
+        id=str(uuid4()),
+        student_id=student_id,
+        book_id="reading-recommend",  # 特殊标记
+        status="completed",
+        words_read=150,  # 精读材料字数
+        completed_at=now
+    )
+    session.add(reading_record)
+
+    session.commit()
+
+    return {
+        "message": "精读完成！",
+        "points_added": 20,
+        "spinosaurus_exp_added": 10,
+        "total_points": current_balance + 20,
+        "spinosaurus_level": spinosaurus.level
+    }
+
+
+@router.post("/reading/{student_id}/recommend/new")
+async def get_new_reading_recommend(
+    student_id: str,
+    session: Session = Depends(get_db)
+):
+    """换一篇精读（重新生成）"""
+    # 获取学生信息
+    student = session.query(Student).filter(Student.id == student_id).first()
+    grade = student.grade if student else 1
+    vocabulary_size = 300
+
+    # 获取不认识的生词
+    vocab_records = session.query(Vocabulary).filter(
+        Vocabulary.student_id == student_id,
+        Vocabulary.status == VocabularyStatus.UNKNOWN
+    ).limit(10).all()
+    unknown_chars = [v.character for v in vocab_records]
+
+    # 调用 AI 生成新的精读材料
+    try:
+        result = await ai_service.generate_reading_recommendation(
+            grade=grade,
+            semester="下学期",
+            unknown_chars=unknown_chars,
+            vocabulary_size=vocabulary_size
+        )
+    except Exception as e:
+        result = ai_service._get_fallback_reading()
+
     return result

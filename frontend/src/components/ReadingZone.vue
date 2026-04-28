@@ -85,6 +85,9 @@
       </div>
     </div>
 
+    <!-- 今日精读推荐 -->
+    <ReadingRecommend :studentId="studentId" />
+
     <!-- 我的书架 - 真实书架效果 -->
     <div class="bookshelf-section">
       <div class="section-header">
@@ -252,6 +255,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { NButton, NModal, NProgress, NSpace, NInput, useMessage } from 'naive-ui'
+import ReadingRecommend from './ReadingRecommend.vue'
+
+const props = defineProps<{
+  studentId: string
+}>()
 
 const message = useMessage()
 

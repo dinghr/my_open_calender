@@ -160,7 +160,8 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    const res = await poetryApi.recommend({
+    const res = await poetryApi.chat({
+      message: keyword,
       student_id: props.studentId,
       grade: props.grade || 1,
       textbook: '人教版'
@@ -177,21 +178,21 @@ const sendMessage = async () => {
 
     loading.value = false
 
-    if (res.data && !res.data.error) {
-      currentPoetry.value = res.data
+    if (res.data && !res.data.error && res.data.poetry) {
+      currentPoetry.value = res.data.poetry
 
-      // 生成介绍文本
-      const introText = generateIntroText(res.data)
+      // 使用后端返回的介绍文本
+      const introText = res.data.reply || generateIntroText(res.data.poetry)
 
       // 打字机效果展示介绍
       await typewriterEffect(introText, msgIndex)
 
       // 通知父组件古诗已准备好
-      emit('poetry-ready', res.data)
+      emit('poetry-ready', res.data.poetry)
     } else {
       const errMsg = messages.value[msgIndex]
       if (errMsg) {
-        errMsg.content = '抱歉，没有找到相关的古诗。换个关键词试试？'
+        errMsg.content = res.data?.reply || '抱歉，没有找到相关的古诗。换个关键词试试？'
         errMsg.isTyping = false
       }
     }

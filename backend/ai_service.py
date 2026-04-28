@@ -279,14 +279,15 @@ class AIService:
             return []
 
     async def generate_poetry(self, grade: int, textbook: str = "人教版",
-                              exclude_titles: List[str] = None) -> Dict[str, Any]:
+                              exclude_titles: List[str] = None, keyword: str = None) -> Dict[str, Any]:
         """
-        根据年级生成古诗内容（简化版，提升响应速度）
+        根据年级和关键词生成古诗推荐
 
         Args:
-            grade: 年级 (1-6)
+            grade: 年级 (1-9)
             textbook: 教材版本
             exclude_titles: 已学过的古诗标题（排除）
+            keyword: 用户输入的关键词（诗人名、季节、主题等）
 
         Returns:
             古诗完整内容
@@ -295,13 +296,24 @@ class AIService:
         if exclude_titles:
             exclude_str = f"\n不要推荐以下古诗：{', '.join(exclude_titles)}"
 
-        # 简化提示词，提升响应速度
-        system_prompt = f"""你是小学语文老师。为{grade}年级推荐一首{textbook}必背古诗。{exclude_str}
+        keyword_str = ""
+        if keyword and keyword.strip():
+            keyword_str = f"\n用户想了解的内容：{keyword.strip()}"
 
-只返回JSON，格式：
+        system_prompt = f"""你是小学语文老师，擅长根据学生需求推荐合适的古诗。
+
+为{grade}年级学生{keyword_str}推荐一首{textbook}必背或选背古诗。{exclude_str}
+
+要求：
+1. 如果用户指定了诗人（如李白、杜甫、白居易），优先推荐该诗人的代表作
+2. 如果用户指定了季节（如春天、夏天）或主题（如思乡、送别、爱国），推荐相关的经典古诗
+3. 如果用户没有指定偏好，随机推荐一首适合该年级的经典古诗
+4. 古诗必须是小学或初中语文课本中收录的
+
+请严格按照以下 JSON 格式返回：
 {{"title":"诗题","title_pinyin":"拼音","author":"作者","dynasty":"朝代","content":"诗句，用换行分隔","pinyin":"每句拼音，用换行分隔","translation":"译文"}}"""
 
-        user_prompt = "推荐一首古诗"
+        user_prompt = "推荐古诗" if not keyword else f"我想了解：{keyword}"
 
         try:
             result = await self.chat(user_prompt, system_prompt)
@@ -468,6 +480,206 @@ class AIService:
         except Exception as e:
             print(f"获取古诗内容错误: {e}")
             return {"error": str(e)}
+
+    async def generate_reading_recommendation(
+        self,
+        grade: int = 1,
+        semester: str = "下学期",
+        unknown_chars: List[str] = None,
+        vocabulary_size: int = 300
+    ) -> Dict[str, Any]:
+        """
+        生成一年级精读推荐材料
+
+        Args:
+            grade: 年级（默认1年级）
+            semester: 学期（上学期/下学期）
+            unknown_chars: 不认识的字列表（重点练习）
+            vocabulary_size: 识字量估计
+
+        Returns:
+            精读材料 JSON
+        """
+        unknown_chars_str = ""
+        if unknown_chars and len(unknown_chars) > 0:
+            unknown_chars_str = f"\n学生不认识的字：{', '.join(unknown_chars[:10])}（请在文章中适当包含这些字，帮助学习）"
+
+        system_prompt = """你是小学一年级语文老师，专门为{}年级{}的学生生成带拼音的精读短文。
+
+学生情况：
+- 年级：{}年级{}
+- 识字量：约{}字{}
+
+请生成一篇适合一年级学生阅读的精读短文，要求：
+
+1. 【文章内容】
+   - 字数：100-150字
+   - 内容简单有趣，贴近小学生生活（如校园、家庭、动物、季节等）
+   - 使用一年级常见词汇，避免过于复杂的表达
+
+2. 【拼音标注】
+   - 每个汉字都需要标注拼音
+   - 格式：每个字单独标注，如"小(xiǎo)明(míng)"
+
+3. 【语言解析】（重点！）
+   找出文章中的以下语言表达，并做精读解析：
+
+   - 成语：解释含义，给出使用场景，设计"模仿说话"引导
+   - 固定句式：分析结构（如"...像..."），引导模仿
+   - 比喻：解释比喻关系（把什么比作什么），引导联想
+   - 形容词：解释词义和感情色彩，引导替换使用
+
+4. 【模仿引导】
+   - 设计2-3个简单的模仿说话练习
+   - 用"你可以这样说..."开头
+   - 适合一年级学生的语言水平
+
+请严格按照以下JSON格式返回：
+{{
+  "title": "标题",
+  "content": "正文（纯文字）",
+  "content_pinyin": [
+    {{"char": "字", "pinyin": "拼音"}}
+  ],
+  "word_count": 字数,
+  "analysis": {{
+    "idioms": [
+      {{"text": "成语", "meaning": "含义", "usage": "使用场景", "guide": "模仿引导"}}
+    ],
+    "sentence_patterns": [
+      {{"text": "句式", "structure": "结构说明", "guide": "模仿引导"}}
+    ],
+    "metaphors": [
+      {{"text": "比喻句", "source": "本体", "target": "喻体", "guide": "联想引导"}}
+    ],
+    "adjectives": [
+      {{"text": "形容词", "meaning": "含义", "feeling": "感情色彩", "guide": "替换引导"}}
+    ]
+  }},
+  "imitation_prompts": [
+    "模仿说话练习1",
+    "模仿说话练习2"
+  ],
+  "reading_tip": "阅读小贴士（给家长的建议）"
+}}""".format(grade, semester, grade, semester, vocabulary_size, unknown_chars_str if unknown_chars_str else "")
+
+        try:
+            result = await self.chat("请生成一篇适合一年级学生的精读短文", system_prompt)
+
+            # 清理 markdown 代码块标记
+            result = result.strip()
+            if result.startswith("```json"):
+                result = result[7:]
+            if result.startswith("```"):
+                result = result[3:]
+            if result.endswith("```"):
+                result = result[:-3]
+            result = result.strip()
+
+            parsed = json.loads(result)
+
+            # 确保必要字段存在
+            return {
+                "title": parsed.get("title", ""),
+                "content": parsed.get("content", ""),
+                "content_pinyin": parsed.get("content_pinyin", []),
+                "word_count": parsed.get("word_count", 0),
+                "analysis": parsed.get("analysis", {
+                    "idioms": [],
+                    "sentence_patterns": [],
+                    "metaphors": [],
+                    "adjectives": []
+                }),
+                "imitation_prompts": parsed.get("imitation_prompts", []),
+                "reading_tip": parsed.get("reading_tip", ""),
+                "grade": grade,
+                "semester": semester
+            }
+        except json.JSONDecodeError as e:
+            print(f"JSON解析错误: {e}")
+            return self._get_fallback_reading()
+        except Exception as e:
+            import traceback
+            print(f"精读生成错误: {e}")
+            traceback.print_exc()
+            return self._get_fallback_reading()
+
+    def _get_fallback_reading(self) -> Dict[str, Any]:
+        """返回备用精读材料（当AI超时或失败时）"""
+        return {
+            "title": "春天的早晨",
+            "content": "春天的早晨，太阳像个大火球。小鸟在树上唱歌，花儿开得像笑脸。小明背着书包去上学，路边的小草向他点头。今天是个好天气！",
+            "content_pinyin": [
+                {"char": "春", "pinyin": "chūn"}, {"char": "天", "pinyin": "tiān"}, {"char": "的", "pinyin": "de"},
+                {"char": "早", "pinyin": "zǎo"}, {"char": "晨", "pinyin": "chén"}, {"char": "，", "pinyin": ""},
+                {"char": "太", "pinyin": "tài"}, {"char": "阳", "pinyin": "yáng"},
+                {"char": "像", "pinyin": "xiàng"}, {"char": "个", "pinyin": "gè"},
+                {"char": "大", "pinyin": "dà"}, {"char": "火", "pinyin": "huǒ"}, {"char": "球", "pinyin": "qiú"},
+                {"char": "。", "pinyin": ""},
+                {"char": "小", "pinyin": "xiǎo"}, {"char": "鸟", "pinyin": "niǎo"},
+                {"char": "在", "pinyin": "zài"}, {"char": "树", "pinyin": "shù"},
+                {"char": "上", "pinyin": "shàng"}, {"char": "唱", "pinyin": "chàng"},
+                {"char": "歌", "pinyin": "gē"}, {"char": "，", "pinyin": ""},
+                {"char": "花", "pinyin": "huā"}, {"char": "儿", "pinyin": "er"},
+                {"char": "开", "pinyin": "kāi"}, {"char": "得", "pinyin": "de"},
+                {"char": "像", "pinyin": "xiàng"}, {"char": "笑", "pinyin": "xiào"},
+                {"char": "脸", "pinyin": "liǎn"}, {"char": "。", "pinyin": ""},
+                {"char": "小", "pinyin": "xiǎo"}, {"char": "明", "pinyin": "míng"},
+                {"char": "背", "pinyin": "bēi"}, {"char": "着", "pinyin": "zhe"},
+                {"char": "书", "pinyin": "shū"}, {"char": "包", "pinyin": "bāo"},
+                {"char": "去", "pinyin": "qù"}, {"char": "上", "pinyin": "shàng"},
+                {"char": "学", "pinyin": "xué"}, {"char": "，", "pinyin": ""},
+                {"char": "路", "pinyin": "lù"}, {"char": "边", "pinyin": "biān"},
+                {"char": "的", "pinyin": "de"}, {"char": "小", "pinyin": "xiǎo"},
+                {"char": "草", "pinyin": "cǎo"}, {"char": "向", "pinyin": "xiàng"},
+                {"char": "他", "pinyin": "tā"}, {"char": "点", "pinyin": "diǎn"},
+                {"char": "头", "pinyin": "tóu"}, {"char": "。", "pinyin": ""},
+                {"char": "今", "pinyin": "jīn"}, {"char": "天", "pinyin": "tiān"},
+                {"char": "是", "pinyin": "shì"}, {"char": "个", "pinyin": "gè"},
+                {"char": "好", "pinyin": "hǎo"}, {"char": "天", "pinyin": "tiān"},
+                {"char": "气", "pinyin": "qì"}, {"char": "！", "pinyin": ""}
+            ],
+            "word_count": 42,
+            "analysis": {
+                "idioms": [],
+                "sentence_patterns": [
+                    {
+                        "text": "太阳像个大火球",
+                        "structure": "...像...",
+                        "guide": "你可以这样说：月亮像个大圆盘。苹果像个红皮球。"
+                    }
+                ],
+                "metaphors": [
+                    {
+                        "text": "花儿开得像笑脸",
+                        "source": "花儿",
+                        "target": "笑脸",
+                        "guide": "你能想到其他比喻吗？比如：星星像眼睛，树叶像小船。"
+                    }
+                ],
+                "adjectives": [
+                    {
+                        "text": "大",
+                        "meaning": "表示体积很大",
+                        "feeling": "中性词",
+                        "guide": "可以换成：红红的太阳、暖暖的太阳。"
+                    },
+                    {
+                        "text": "好",
+                        "meaning": "表示天气很好",
+                        "feeling": "褒义词，表示喜欢",
+                        "guide": "可以换成：美丽的天气、晴朗的天气。"
+                    }
+                ]
+            },
+            "imitation_prompts": [
+                "试着用「像」说一句话：___像___。",
+                "找找看，文章里还有哪些东西可以比喻？"
+            ],
+            "reading_tip": "读这篇短文时，可以让孩子注意「像」字，学会用比喻来描述事物。读完后，让孩子试着说几个比喻句。",
+            "grade": 1,
+            "semester": "下学期"
+        }
 
 
 # 全局实例
